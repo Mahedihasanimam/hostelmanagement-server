@@ -35,7 +35,7 @@ async function run() {
     const mealsCollection=client.db('hostelDB').collection('meals')
     
     app.get('/meals',async(req,res)=>{
-      
+        const melas=req.body
         const result=await mealsCollection.find().toArray()
         res.send(result)
     })
