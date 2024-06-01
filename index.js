@@ -5,7 +5,7 @@ require('dotenv').config();
 const cookieParser = require('cookie-parser');
 const port=process.env.PORT || 5000
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.k4th77t.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`
 
 app.use(express.json())
@@ -33,10 +33,16 @@ async function run() {
     
 
     const mealsCollection=client.db('hostelDB').collection('meals')
-    
     app.get('/meals',async(req,res)=>{
-        const melas=req.body
         const result=await mealsCollection.find().toArray()
+        res.send(result)
+    })
+
+    // get meals by id 
+    app.get('/details/:id',async(req,res)=>{
+        const id=req.params.id
+        const query={_id: new ObjectId(id)}
+        const result=await mealsCollection.findOne(query)
         res.send(result)
     })
 
