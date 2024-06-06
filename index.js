@@ -35,9 +35,23 @@ async function run() {
 
     const mealsCollection=client.db('hostelDB').collection('meals')
     const reviewCollection=client.db('hostelDB').collection('reviews')
+    const mealreviewCollection=client.db('hostelDB').collection('mealreview')
+
+// POST SECTION 
+//------------------------------------------------------------//
+// post meal reviews 
+app.post('/mealreview',async(req,res)=>{
+  const feedback=req.body
+  const result=await mealreviewCollection.insertOne(feedback)
+  res.send(result)
+})
 
 
 
+
+
+// GET SECTION 
+//------------------------------------------------------------//
     // get all meals 
     app.get('/meals',async(req,res)=>{
         const result=await mealsCollection.find().toArray()
@@ -57,12 +71,13 @@ async function run() {
       const result = await reviewCollection.find().toArray()
       res.send(result)
     })
+
+
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
-   
   }
 }
 run().catch(console.dir);
