@@ -36,6 +36,7 @@ async function run() {
     const mealsCollection=client.db('hostelDB').collection('meals')
     const reviewCollection=client.db('hostelDB').collection('reviews')
     const mealreviewCollection=client.db('hostelDB').collection('mealreview')
+    const membershipewCollection=client.db('hostelDB').collection('membership')
 
 // POST SECTION 
 //------------------------------------------------------------//
@@ -52,6 +53,20 @@ app.post('/mealreview',async(req,res)=>{
 
 // GET SECTION 
 //------------------------------------------------------------//
+
+    // get membership 
+    app.get('/membership',async(req,res)=>{
+      const result=await membershipewCollection.find().toArray()
+      res.send(result)
+    })
+
+    // get single member by id 
+    app.get('/membership/:id',async(req,res)=>{
+      const id=req.params.id
+      const query={_id:new ObjectId(id)}
+      const result=await membershipewCollection.findOne(query)
+      res.send(result)
+    })
     // get all meals 
     app.get('/meals',async(req,res)=>{
         const result=await mealsCollection.find().toArray()
