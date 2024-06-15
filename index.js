@@ -66,6 +66,12 @@ async function run() {
       const result=await paymentCollection.insertOne(allData)
       res.send(result)
     })
+
+    // get payment history 
+    app.get('/payment',async(req,res)=>{
+      const result=await paymentCollection.find().toArray()
+      res.send(result)
+    })
     // Post meal reviews
     app.post("/mealreview", async (req, res) => {
       const feedback = req.body;
