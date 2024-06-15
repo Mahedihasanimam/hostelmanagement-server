@@ -39,6 +39,7 @@ async function run() {
     const mealreviewCollection = client.db("hostelDB").collection("mealreview");
     const membershipCollection = client.db("hostelDB").collection("membership");
     const paymentCollection = client.db("hostelDB").collection("payment");
+    const requestmealCollection = client.db("hostelDB").collection("requestmeal");
 
     // POST SECTION
     //------------------------------------------------------------//
@@ -59,25 +60,32 @@ async function run() {
       });
     });
 
+    // save paymend data
+    app.post("/payment", async (req, res) => {
+      const allData = req.body;
+      const result = await paymentCollection.insertOne(allData);
+      res.send(result);
+    });
 
-    // save paymend data 
-    app.post('/payment',async(req,res)=>{
-      const allData=req.body
-      const result=await paymentCollection.insertOne(allData)
-      res.send(result)
-    })
-
-    // get payment history 
-    app.get('/payment',async(req,res)=>{
-      const result=await paymentCollection.find().toArray()
-      res.send(result)
-    })
     // Post meal reviews
     app.post("/mealreview", async (req, res) => {
       const feedback = req.body;
       const result = await mealreviewCollection.insertOne(feedback);
       res.send(result);
     });
+
+    // post request meal
+    app.post('/requestmeal',async(req,res)=>{
+      const meal=req.body;
+      const reqid=meal._id
+      const exist =await requestmealCollection.findOne({_id:reqid})
+      if(exist){
+        return res.status(409).send({Error:'mealrequest already exist'})
+      }
+      console.log('mealreqid',reqid);
+      const result=await requestmealCollection.insertOne(meal)
+      res.send(result)
+    })
 
     // GET SECTION
     //------------------------------------------------------------//
@@ -95,7 +103,11 @@ async function run() {
       const result = await membershipCollection.findOne(query);
       res.send(result);
     });
-
+    // get payment history
+    app.get("/payment", async (req, res) => {
+      const result = await paymentCollection.find().toArray();
+      res.send(result);
+    });
     // Get all meals
     app.get("/meals", async (req, res) => {
       const result = await mealsCollection.find().toArray();
@@ -104,8 +116,7 @@ async function run() {
 
     // Update meal count
     app.put("/meals/:id", async (req, res) => {
-
-      const id=req.params.id
+      const id = req.params.id;
       console.log(id);
       const filter = { _id: new ObjectId(id) }; // Assuming data contains an _id field
       const options = { upsert: true };
@@ -117,7 +128,7 @@ async function run() {
         updateDoc,
         options
       );
-      
+
       res.send(result);
     });
 
@@ -143,27 +154,26 @@ async function run() {
       res.send(result);
     });
 
-    // get review by id 
-    app.get('/reviews/:id',async(req,res)=>{
-      const id =req.params.id
-      const query={_id:new ObjectId(id)}
-      const result=await reviewCollection.findOne(query)
-      res.send(result)
-    })
+    // get review by id
+    app.get("/reviews/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await reviewCollection.findOne(query);
+      res.send(result);
+    });
     // Get all meal reviews
     app.get("/mealreview", async (req, res) => {
       const result = await mealreviewCollection.find().toArray();
       res.send(result);
     });
 
-
-    // get single my review 
-    app.get('/myreview/:id',async(req,res)=>{
-      const id=req.params.id
-      const query={_id: new ObjectId(id)}
-      const result=await mealreviewCollection.findOne(query)
-      res.send(result)
-    })
+    // get single my review
+    app.get("/myreview/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await mealreviewCollection.findOne(query);
+      res.send(result);
+    });
 
     // Delete meal review
     app.delete("/myreview/:id", async (req, res) => {
