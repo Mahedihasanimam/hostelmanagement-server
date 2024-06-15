@@ -1,24 +1,23 @@
-const express = require('express');
-const app=express()
-const cors = require('cors');
-require('dotenv').config();
-const cookieParser = require('cookie-parser');
+const express = require("express");
+const app = express();
+const cors = require("cors");
+require("dotenv").config();
+const cookieParser = require("cookie-parser");
+const stripe = require("stripe")(process.env.VITE_API_PAYMENT_SECRT);
+const port = process.env.PORT || 5000;
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
-const stripe = require('stripe')(process.env.VITE_API_PAYMENT_SECRT)
-const port=process.env.PORT || 5000
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.k4th77t.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.k4th77t.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`
-
-app.use(express.json())
-app.use(cors({
-    origin:['http://localhost:5173'],
-    credentials:true,
-    optionsSuccessStatus:200
-}))
-
-
-
+app.use(express.json());
+app.use(
+  cors({
+    origin: ["http://localhost:5173"],
+    credentials: true,
+    optionsSuccessStatus: 200,
+  })
+);
+app.use(cookieParser());
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -26,110 +25,164 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
 });
 
 async function run() {
   try {
-    // Connect the client to the server	(optional starting in v4.7)
-    
-    // all collection 
+    // Connect the client to the server
+    await client.connect();
 
-    const mealsCollection=client.db('hostelDB').collection('meals')
-    const reviewCollection=client.db('hostelDB').collection('reviews')
-    const mealreviewCollection=client.db('hostelDB').collection('mealreview')
-    const membershipewCollection=client.db('hostelDB').collection('membership')
+    // All collections
+    const mealsCollection = client.db("hostelDB").collection("meals");
+    const reviewCollection = client.db("hostelDB").collection("reviews");
+    const mealreviewCollection = client.db("hostelDB").collection("mealreview");
+    const membershipCollection = client.db("hostelDB").collection("membership");
+    const paymentCollection = client.db("hostelDB").collection("payment");
 
-// POST SECTION 
-//------------------------------------------------------------//
+    // POST SECTION
+    //------------------------------------------------------------//
 
-// create payment intent 
-app.post("/create-payment-intent",async(req,res)=>{
-  const {price}=req.body;
-  const amount=parseInt(price*100);
-  
-  const paymentIntent= await stripe.paymentIntents.create({
-    amount:amount,
-    currency:'usd',
-    payment_method_types:['card']
-  })
-  
-  res.send({
-    clientSecret:paymentIntent.client_secret
-  })
-})
+    // Create payment intent
+    app.post("/create-payment-intent", async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
 
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
 
-
-// post meal reviews 
-app.post('/mealreview',async(req,res)=>{
-  const feedback=req.body
-  const result=await mealreviewCollection.insertOne(feedback)
-  res.send(result)
-})
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
 
 
-
-
-
-// GET SECTION 
-//------------------------------------------------------------//
-
-    // get membership 
-    app.get('/membership',async(req,res)=>{
-      const result=await membershipewCollection.find().toArray()
+    // save paymend data 
+    app.post('/payment',async(req,res)=>{
+      const allData=req.body
+      const result=await paymentCollection.insertOne(allData)
       res.send(result)
     })
+    // Post meal reviews
+    app.post("/mealreview", async (req, res) => {
+      const feedback = req.body;
+      const result = await mealreviewCollection.insertOne(feedback);
+      res.send(result);
+    });
 
-    // get single member by id 
-    app.get('/membership/:id',async(req,res)=>{
+    // GET SECTION
+    //------------------------------------------------------------//
+
+    // Get membership
+    app.get("/membership", async (req, res) => {
+      const result = await membershipCollection.find().toArray();
+      res.send(result);
+    });
+
+    // Get single member by id
+    app.get("/membership/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await membershipCollection.findOne(query);
+      res.send(result);
+    });
+
+    // Get all meals
+    app.get("/meals", async (req, res) => {
+      const result = await mealsCollection.find().toArray();
+      res.send(result);
+    });
+
+    // Update meal count
+    app.put("/meals/:id", async (req, res) => {
+
       const id=req.params.id
+      console.log(id);
+      const filter = { _id: new ObjectId(id) }; // Assuming data contains an _id field
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: data,
+      };
+      const result = await mealsCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      
+      res.send(result);
+    });
+
+    // Get meal by category
+    app.get("/meals/:category", async (req, res) => {
+      const category = req.params.category;
+      const query = { category: category };
+      const result = await mealsCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // Get meals by id
+    app.get("/details/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await mealsCollection.findOne(query);
+      res.send(result);
+    });
+
+    // Get reviews/what our client says
+    app.get("/reviews", async (req, res) => {
+      const result = await reviewCollection.find().toArray();
+      res.send(result);
+    });
+
+    // get review by id 
+    app.get('/reviews/:id',async(req,res)=>{
+      const id =req.params.id
       const query={_id:new ObjectId(id)}
-      const result=await membershipewCollection.findOne(query)
+      const result=await reviewCollection.findOne(query)
       res.send(result)
     })
-    // get all meals 
-    app.get('/meals',async(req,res)=>{
-        const result=await mealsCollection.find().toArray()
-        res.send(result)
-    })
+    // Get all meal reviews
+    app.get("/mealreview", async (req, res) => {
+      const result = await mealreviewCollection.find().toArray();
+      res.send(result);
+    });
 
-    // get meals by id 
-    app.get('/details/:id',async(req,res)=>{
-        const id=req.params.id
-        const query={_id: new ObjectId(id)}
-        const result=await mealsCollection.findOne(query)
-        res.send(result)
-    })
 
-    // get reviews/ what our client says
-    app.get('/reviews',async(req,res)=>{
-      const result = await reviewCollection.find().toArray()
-      res.send(result)
-    })
-    // get all meal review 
-    app.get('/mealreview',async(req,res)=>{
-      const result=await mealreviewCollection.find().toArray()
+    // get single my review 
+    app.get('/myreview/:id',async(req,res)=>{
+      const id=req.params.id
+      const query={_id: new ObjectId(id)}
+      const result=await mealreviewCollection.findOne(query)
       res.send(result)
     })
 
-    // Send a ping to confirm a successful connection
-    // await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // Delete meal review
+    app.delete("/myreview/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await mealreviewCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!"
+    );
   } finally {
     // Ensures that the client will close when you finish/error
+    // Comment this out for now to keep the connection open for further requests
+    // await client.close();
   }
 }
+
 run().catch(console.dir);
 
+app.get("/", (req, res) => {
+  res.send("hostel server is running");
+});
 
-
-
-
-app.get('/',(req,res)=>{
-    res.send('hostel server is running')
-})
-
-app.listen(port,()=>{
-    console.log(`hostel server is running on port:${port}`);
-})
+app.listen(port, () => {
+  console.log(`Hostel server is running on port: ${port}`);
+});
