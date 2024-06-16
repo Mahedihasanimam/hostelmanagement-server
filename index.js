@@ -82,7 +82,7 @@ async function run() {
       if(exist){
         return res.status(409).send({Error:'mealrequest already exist'})
       }
-      console.log('mealreqid',reqid);
+
       const result=await requestmealCollection.insertOne(meal)
       res.send(result)
     })
@@ -114,6 +114,11 @@ async function run() {
       res.send(result);
     });
 
+    // get requested meal 
+    app.get('/requestedmeal',async(req,res)=>{
+      const result=await requestmealCollection.find().toArray()
+      res.send(result)
+    })
     // Update meal count
     app.put("/meals/:id", async (req, res) => {
       const id = req.params.id;
@@ -183,6 +188,12 @@ async function run() {
       res.send(result);
     });
 
+    // delte requested meal 
+    app.delete('/requestmeal/:id',async(req,res)=>{
+      const id=req.params.id
+      const result=await requestmealCollection.deleteOne({_id:new ObjectId(id)})
+      res.send(result)
+    })
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
