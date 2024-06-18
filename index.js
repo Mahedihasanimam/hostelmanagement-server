@@ -40,6 +40,7 @@ async function run() {
     const membershipCollection = client.db("hostelDB").collection("membership");
     const paymentCollection = client.db("hostelDB").collection("payment");
     const requestmealCollection = client.db("hostelDB").collection("requestmeal");
+    const usersCollection = client.db("hostelDB").collection("users");
 
     // POST SECTION
     //------------------------------------------------------------//
@@ -77,16 +78,28 @@ async function run() {
     // post request meal
     app.post('/requestmeal',async(req,res)=>{
       const meal=req.body;
-      const reqid=meal._id
-      const exist =await requestmealCollection.findOne({_id:reqid})
+      const query={_id:meal._id}
+      const exist =await requestmealCollection.findOne(query)
       if(exist){
-        return res.status(409).send({Error:'mealrequest already exist'})
+        return res.send({message:'request already exist'})
       }
 
       const result=await requestmealCollection.insertOne(meal)
       res.send(result)
     })
 
+    // user related api 
+    app.post('/users',async(req,res)=>{
+      const user=req.body
+      const query={email:user.email}
+      const exist= await usersCollection.findOne(query)
+      if(exist){
+        return res.send({message:'user already exist',insertedId:null})
+        
+      }
+      const result=await usersCollection.insertOne(user)
+      res.send(result)
+    })
     // GET SECTION
     //------------------------------------------------------------//
 
@@ -194,6 +207,14 @@ async function run() {
       const result=await requestmealCollection.deleteOne({_id:new ObjectId(id)})
       res.send(result)
     })
+
+    // get users
+    app.get('/users',async (req,res)=>{
+      const result=await usersCollection.find().toArray()
+      res.send(result)
+      
+    }) 
+    
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
