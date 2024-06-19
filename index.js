@@ -5,7 +5,7 @@ require("dotenv").config();
 const cookieParser = require("cookie-parser");
 const stripe = require("stripe")(process.env.VITE_API_PAYMENT_SECRT);
 const port = process.env.PORT || 5000;
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId, Admin } = require("mongodb");
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.k4th77t.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -41,6 +41,7 @@ async function run() {
     const paymentCollection = client.db("hostelDB").collection("payment");
     const requestmealCollection = client.db("hostelDB").collection("requestmeal");
     const usersCollection = client.db("hostelDB").collection("users");
+    const likeCollection = client.db("hostelDB").collection("Like");
 
     // POST SECTION
     //------------------------------------------------------------//
@@ -100,8 +101,7 @@ async function run() {
       const result=await usersCollection.insertOne(user)
       res.send(result)
     })
-
-
+    
 
     ///ADMIN RELATED API-----------------------------//
     app.patch('/users/admin/:id',async(req,res)=>{
@@ -116,10 +116,61 @@ async function run() {
       res.send(result)
     })
 
+  //  like 
+app.patch('/like/:id', async (req, res) => {
+      const data = req.body;
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          email: data.email,
+          mealid: data.mealid
+        },
+        $inc: {
+          like: data.like // Increment the like field by the value provided in the request
+        }
+      };
+      const options = { upsert: true }; // Create a new document if no documents match the filter
+      const result = await likeCollection.updateOne(filter, updateDoc, options);
+      res.send(result);
+    });
 
 
     // GET SECTION
     //------------------------------------------------------------//
+
+
+    // app.patch('/users/badge/:id', async (req, res) => {
+    //   const id = req.params.id;
+    //   const filter = { _id: new ObjectId(id) };
+    //   const updateDoc = {
+    //     $set: {
+    //       badge: 'silver'
+    //     }
+    //   };
+    //   const result = await usersCollection.updateOne(filter, updateDoc);
+    //   res.send(result);
+    // });
+    
+
+    // get like 
+    app.get('/like',async(req,res)=>{
+      const result=await likeCollection.find().toArray()
+      res.send(result)
+    })
+    // get admin 
+    app.get('/users/admin/:email',async(req,res)=>{
+      const email=req.params.email
+      const query={email:email}
+      const result=await usersCollection.findOne(query)
+      let admin=false
+      if(result){
+        admin=result?.role==='admin'
+      }
+      res.send({admin})
+    })
+
+
 
     // Get membership
     app.get("/membership", async (req, res) => {
@@ -150,23 +201,7 @@ async function run() {
       const result=await requestmealCollection.find().toArray()
       res.send(result)
     })
-    // Update meal count
-    app.put("/meals/:id", async (req, res) => {
-      const id = req.params.id;
-      console.log(id);
-      const filter = { _id: new ObjectId(id) }; // Assuming data contains an _id field
-      const options = { upsert: true };
-      const updateDoc = {
-        $set: data,
-      };
-      const result = await mealsCollection.updateOne(
-        filter,
-        updateDoc,
-        options
-      );
-
-      res.send(result);
-    });
+   
 
     // Get meal by category
     app.get("/meals/:category", async (req, res) => {
