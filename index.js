@@ -47,6 +47,13 @@ async function run() {
     //------------------------------------------------------------//
 
     // Create payment intent
+    // add meal 
+    app.post('/addmeal',async(req,res)=>{
+      const data=req.body
+      const result=await mealsCollection.insertOne(data)
+      res.send(result)
+    })
+
     app.post("/create-payment-intent", async (req, res) => {
       const { price } = req.body;
       const amount = parseInt(price * 100);
@@ -156,6 +163,14 @@ app.patch('/like/:id', async (req, res) => {
     // get like 
     app.get('/like',async(req,res)=>{
       const result=await likeCollection.find().toArray()
+      res.send(result)
+    })
+
+    // get like by id 
+    app.get('/like/:id',async(req,res)=>{
+      const id=req.params.id
+      const query={_id:new ObjectId(id)}
+      const result=await likeCollection.findOne(query)
       res.send(result)
     })
     // get admin 
