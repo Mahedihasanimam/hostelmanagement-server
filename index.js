@@ -39,7 +39,9 @@ async function run() {
     const mealreviewCollection = client.db("hostelDB").collection("mealreview");
     const membershipCollection = client.db("hostelDB").collection("membership");
     const paymentCollection = client.db("hostelDB").collection("payment");
-    const requestmealCollection = client.db("hostelDB").collection("requestmeal");
+    const requestmealCollection = client
+      .db("hostelDB")
+      .collection("requestmeal");
     const usersCollection = client.db("hostelDB").collection("users");
     const likeCollection = client.db("hostelDB").collection("Like");
 
@@ -47,12 +49,12 @@ async function run() {
     //------------------------------------------------------------//
 
     // Create payment intent
-    // add meal 
-    app.post('/addmeal',async(req,res)=>{
-      const data=req.body
-      const result=await mealsCollection.insertOne(data)
-      res.send(result)
-    })
+    // add meal
+    app.post("/addmeal", async (req, res) => {
+      const data = req.body;
+      const result = await mealsCollection.insertOne(data);
+      res.send(result);
+    });
 
     app.post("/create-payment-intent", async (req, res) => {
       const { price } = req.body;
@@ -84,68 +86,81 @@ async function run() {
     });
 
     // post request meal
-    app.post('/requestmeal',async(req,res)=>{
-      const meal=req.body;
-      const query={_id:meal._id}
-      const exist =await requestmealCollection.findOne(query)
-      if(exist){
-        return res.send({message:'request already exist'})
+    app.post("/requestmeal", async (req, res) => {
+      const meal = req.body;
+      const query = { _id: meal._id };
+      const exist = await requestmealCollection.findOne(query);
+      if (exist) {
+        return res.send({ message: "request already exist" });
       }
 
-      const result=await requestmealCollection.insertOne(meal)
-      res.send(result)
-    })
+      const result = await requestmealCollection.insertOne(meal);
+      res.send(result);
+    });
 
-    // user related api 
-    app.post('/users',async(req,res)=>{
-      const user=req.body
-      const query={email:user.email}
-      const exist= await usersCollection.findOne(query)
-      if(exist){
-        return res.send({message:'user already exist',insertedId:null})
-        
+    // user related api
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const query = { email: user.email };
+      const exist = await usersCollection.findOne(query);
+      if (exist) {
+        return res.send({ message: "user already exist", insertedId: null });
       }
-      const result=await usersCollection.insertOne(user)
-      res.send(result)
-    })
-    
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+    });
 
     ///ADMIN RELATED API-----------------------------//
-    app.patch('/users/admin/:id',async(req,res)=>{
-      const id =req.params.id
-      const filter ={_id:new ObjectId(id)}
-      const updateDoc={
-        $set:{
-          role:'admin'
-        }
-      }
-      const result=await usersCollection.updateOne(filter,updateDoc)
-      res.send(result)
-    })
+    // update meal
+    app.patch("/updatemeal/:id", async (req, res) => {
+      const id = req.params.id;
+      const filtr = { _id: new ObjectId(id) };
+      const data = req.body;
+      const updateDoc = {
+        $set: {
+          ...data,
+        },
+      };
+      const result = await mealsCollection.updateOne(filtr, updateDoc);
+      res.send(result);
+    });
+    app.patch("/users/admin/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          role: "admin",
+        },
+      };
+      const result = await usersCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
 
-  //  like 
-app.patch('/like/:id', async (req, res) => {
+    //  like
+    app.patch("/like/:id", async (req, res) => {
       const data = req.body;
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
         $set: {
           email: data.email,
-          mealid: data.mealid
+          mealid: data.mealid,
         },
         $inc: {
-          like: data.like // Increment the like field by the value provided in the request
-        }
+          like: data.like, // Increment the like field by the value provided in the request
+        },
       };
       const options = { upsert: true }; // Create a new document if no documents match the filter
-      const result = await likeCollection.updateOne(filter, updateDoc, options);
+      const result = await mealsCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
       res.send(result);
     });
 
-
     // GET SECTION
     //------------------------------------------------------------//
-
 
     // app.patch('/users/badge/:id', async (req, res) => {
     //   const id = req.params.id;
@@ -158,34 +173,31 @@ app.patch('/like/:id', async (req, res) => {
     //   const result = await usersCollection.updateOne(filter, updateDoc);
     //   res.send(result);
     // });
-    
 
-    // get like 
-    app.get('/like',async(req,res)=>{
-      const result=await likeCollection.find().toArray()
-      res.send(result)
-    })
+    // get like
+    app.get("/like", async (req, res) => {
+      const result = await likeCollection.find().toArray();
+      res.send(result);
+    });
 
-    // get like by id 
-    app.get('/like/:id',async(req,res)=>{
-      const id=req.params.id
-      const query={_id:new ObjectId(id)}
-      const result=await likeCollection.findOne(query)
-      res.send(result)
-    })
-    // get admin 
-    app.get('/users/admin/:email',async(req,res)=>{
-      const email=req.params.email
-      const query={email:email}
-      const result=await usersCollection.findOne(query)
-      let admin=false
-      if(result){
-        admin=result?.role==='admin'
+    // get like by id
+    app.get("/like/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await likeCollection.findOne(query);
+      res.send(result);
+    });
+    // get admin
+    app.get("/users/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await usersCollection.findOne(query);
+      let admin = false;
+      if (result) {
+        admin = result?.role === "admin";
       }
-      res.send({admin})
-    })
-
-
+      res.send({ admin });
+    });
 
     // Get membership
     app.get("/membership", async (req, res) => {
@@ -211,12 +223,18 @@ app.patch('/like/:id', async (req, res) => {
       res.send(result);
     });
 
-    // get requested meal 
-    app.get('/requestedmeal',async(req,res)=>{
-      const result=await requestmealCollection.find().toArray()
-      res.send(result)
-    })
-   
+    // get meal by id
+    app.get("/meal/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await mealsCollection.findOne(query);
+      res.send(result);
+    });
+    // get requested meal
+    app.get("/requestedmeal", async (req, res) => {
+      const result = await requestmealCollection.find().toArray();
+      res.send(result);
+    });
 
     // Get meal by category
     app.get("/meals/:category", async (req, res) => {
@@ -269,20 +287,27 @@ app.patch('/like/:id', async (req, res) => {
       res.send(result);
     });
 
-    // delte requested meal 
-    app.delete('/requestmeal/:id',async(req,res)=>{
-      const id=req.params.id
-      const result=await requestmealCollection.deleteOne({_id:new ObjectId(id)})
-      res.send(result)
-    })
+    // delte requested meal
+    app.delete("/requestmeal/:id", async (req, res) => {
+      const id = req.params.id;
+      const result = await requestmealCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+      res.send(result);
+    });
+    // delte  meal
+    app.delete("/delete/meal/:id", async (req, res) => {
+      const id = req.params.id;
+      const result = await mealsCollection.deleteOne({ _id: new ObjectId(id) });
+      res.send(result);
+    });
 
     // get users
-    app.get('/users',async (req,res)=>{
-      const result=await usersCollection.find().toArray()
-      res.send(result)
+    app.get("/users", async (req, res) => {
+      const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
 
-    }) 
-    
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
