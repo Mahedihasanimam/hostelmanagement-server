@@ -1,4 +1,5 @@
 const express = require("express");
+const jwt=require('jsonwebtoken')
 const app = express();
 const cors = require("cors");
 require("dotenv").config();
@@ -44,6 +45,39 @@ async function run() {
       .collection("requestmeal");
     const usersCollection = client.db("hostelDB").collection("users");
     const likeCollection = client.db("hostelDB").collection("Like");
+
+
+
+
+
+      // JWT veryfy token      
+    //------------------------------------------------------------//
+    const verifyToken=(req,res,next)=>{
+     
+      if(!req.headers.authorization){
+       return res.status(401).send({message:'forbidden access'})
+      }
+      const token=req.headers.authorization.split(' ')[1]
+      jwt.verify(token,process.env.VITE_SECRETKEY,(err,decoded)=>{
+        if(err){
+          return res.status(401).send({message:'forbidden access'})
+        }
+        req.decoded=decoded;
+        next();
+      })
+    }
+
+  // JWT RELATED API      
+    //------------------------------------------------------------//
+    app.post('/jwt',async(req,res)=>{
+      const user=req.body
+      const token=jwt.sign(user,process.env.VITE_SECRETKEY,{expiresIn:'1h'});
+      res.send({token})
+    })
+
+
+
+
 
     // POST SECTION
     //------------------------------------------------------------//
@@ -112,17 +146,17 @@ async function run() {
 
     ///ADMIN RELATED API-----------------------------//
     // update meal
-    app.patch("/updatemeal/:id", async (req, res) => {
-      const id = req.params.id;
-      const filtr = { _id: new ObjectId(id) };
+    app.put("/updatemeal/:id", async (req, res) => {
+      const id=req.params.id
+      const filtr={_id:new ObjectId(id)}
       const data = req.body;
       const updateDoc = {
         $set: {
           ...data,
         },
       };
-      const result = await mealsCollection.updateOne(filtr, updateDoc);
-      res.send(result);
+      const result =await mealsCollection.updateOne(filtr,updateDoc)
+      res.send(result)
     });
     app.patch("/users/admin/:id", async (req, res) => {
       const id = req.params.id;
@@ -188,8 +222,11 @@ async function run() {
       res.send(result);
     });
     // get admin
-    app.get("/users/admin/:email", async (req, res) => {
+    app.get("/users/admin/:email",verifyToken, async (req, res) => {
       const email = req.params.email;
+      if(email !== req.decoded.email){
+        return res.status(403).send({message:'unauthorize access'})
+      }
       const query = { email: email };
       const result = await usersCollection.findOne(query);
       let admin = false;
@@ -219,7 +256,7 @@ async function run() {
     });
     // Get all meals
     app.get("/meals", async (req, res) => {
-      const result = await mealsCollection.find().toArray();
+      const result = await mealsCollection.find().sort({like:-1}).toArray();
       res.send(result);
     });
 
@@ -267,7 +304,7 @@ async function run() {
     });
     // Get all meal reviews
     app.get("/mealreview", async (req, res) => {
-      const result = await mealreviewCollection.find().toArray();
+      const result = await mealreviewCollection.find().sort({reviewCount:-1,likeCount:-1}).toArray();
       res.send(result);
     });
 
@@ -303,7 +340,8 @@ async function run() {
     });
 
     // get users
-    app.get("/users", async (req, res) => {
+    app.get("/users",verifyToken, async (req, res) => {
+      
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
