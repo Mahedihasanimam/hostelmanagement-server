@@ -207,6 +207,28 @@ async function run() {
       );
       res.send(result);
     });
+    //  like
+    app.patch("/upcom/like/:id", async (req, res) => {
+      const data = req.body;
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          email: data.email,
+          mealid: data.mealid,
+        },
+        $inc: {
+          like: data.like, // Increment the like field by the value provided in the request
+        },
+      };
+      const options = { upsert: true }; // Create a new document if no documents match the filter
+      const result = await upcommingCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      res.send(result);
+    });
 
     // GET SECTION
     //------------------------------------------------------------//
