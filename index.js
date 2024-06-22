@@ -41,6 +41,8 @@ async function run() {
     const mealreviewCollection = client.db("hostelDB").collection("mealreview");
     const membershipCollection = client.db("hostelDB").collection("membership");
     const paymentCollection = client.db("hostelDB").collection("payment");
+    const feedbackCollection = client.db("hostelDB").collection("feedback");
+
     const requestmealCollection = client
       .db("hostelDB")
       .collection("requestmeal");
@@ -129,6 +131,12 @@ async function run() {
       res.send(result);
     });
 
+    // feedback post 
+    app.post('/user/feedback',async(req,res)=>{
+      const data=req.body
+      const result=await feedbackCollection.insertOne(data)
+      res.send(result)
+    })
     // post request meal
     app.post("/requestmeal", async (req, res) => {
       const meal = req.body;
